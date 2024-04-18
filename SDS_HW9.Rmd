@@ -1,0 +1,190 @@
+---
+title: "SDS_HW9"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-04-15"
+---
+
+
+[Github Link](https://github.com/Disharajj/SDS_HW9.git)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = FALSE}
+library(dplyr)
+library(MatchIt)
+library(mosaic)
+library(ggplot2)
+library(moderndive)
+```
+
+# *Problem 1*
+
+```{r echo = FALSE, results ='hide'}
+turnout_data <- read.csv("/Users/disharaj/Downloads/turnout.csv")
+```
+
+```{r echo = FALSE}
+turnout_data1 <- turnout_data %>%
+  filter(voted1998 == 1)
+prop_1 = prop(~GOTV_call, data=mosaic::resample(turnout_data1)) 
+prop_0 = prop(~GOTV_call == 0, data=mosaic::resample(turnout_data1))
+diff = prop_0 - prop_1
+prop_1
+prop_0
+```
+The proportion of of those recieving a GOTV call who voted in 1998 is around *0.0397*.
+The proportion of those not recieving a GOTV call who voted in 1998 is around *0.9675*.
+
+**Part A**
+
+```{r echo = FALSE}
+n_1 <- sum(turnout_data$voted1998 == 1)
+n_0 <- sum(turnout_data$voted1998 == 0)
+se_diff_prop <- sqrt((prop_1 * (1 - prop_1) / n_1) + (prop_0 * (1 - prop_0) / n_0))
+margin_of_error <- 1.96 * se_diff_prop
+conf_interval <- c(diff - margin_of_error, diff + margin_of_error)
+conf_interval
+```
+
+A 95% confidence interval for the difference in proportions can be given by *(0.9278519, 0.9413108)*
+
+# **Part B**
+
+```{r echo = FALSE}
+ggplot(turnout_data, aes(x = AGE)) +
+  geom_histogram(binwidth = 5, color = "white", fill = "skyblue") +
+  facet_wrap(~GOTV_call, scales = "free") +
+  labs(title = "Distribution on Age by GOTV call",
+       x = "Age",
+       y = "Frequency")
+```
+
+From the graphs above, we see how the data is skewed to either the left or right depending on whether or not a person recieved a GOTV call. As age progresses, a general pattern shows a higher number of people recieving a GOTV call.
+
+```{r echo = FALSE}
+ggplot(turnout_data, aes(x = as.factor(GOTV_call), fill = as.factor(voted1996))) +
+  geom_bar(position = "fill") +
+  labs(title = "Probability of GOTV_call given voted1996",
+       x = "GOTV_call",
+       y = "Proportion") +
+  scale_fill_discrete(name = "voted1996")
+```
+
+The graph above shows us the proportion of those who did and did not recieve a GOTV call dependent on voted 1996. The results show a higher proportion of people voted in 1996 of those who recieved a GOTV call over those who didn't. 
+
+```{r echo =  FALSE}
+ggplot(turnout_data, aes(x = as.factor(GOTV_call), fill = as.factor(MAJORPTY))) +
+  geom_bar(position = "fill") +
+  labs(title = "Probability of GOTV_call by MAJORPTY",
+       x = "MAJORPTY",
+       y = "Proportion") +
+  scale_fill_discrete(name = "MAJORPTY")
+```
+
+The graph above shows us the proportion of those who did and did not recieve a GOTV call dependent on MAJORPTY. The results show a higher proportion of people with a 1 on MAJORPTY who recieved a GOTV call over those who didn't.
+
+```{r echo = FALSE}
+ggplot(turnout_data, aes(x = AGE)) +
+  geom_histogram(binwidth = 5, color = "white", fill = "skyblue") +
+  facet_wrap(~voted1998, scales = "free") +
+  labs(title = "Histogram of Age by voted1998",
+       x = "Age",
+       y = "Frequency")
+```
+
+From the graphs above, we see how the data is skewed to either the left or right depending on whether or not a person voted in 1998. Lesser numbers of people who are of a younger age voted in 1998 as compared to those of older ages.
+From this, we can say age can be a potential confounding variable. 
+
+```{r echo=FALSE}
+ggplot(turnout_data, aes(x = as.factor(voted1998), fill = as.factor(voted1996))) +
+  geom_bar(position = "fill") +
+  labs(title = "Probability of voted1998 given voted1996",
+       x = "voted1998",
+       y = "Proportion") +
+  scale_fill_discrete(name = "voted1996")
+```
+The graph above shows us the proportion of those who did and did not vote in 1998 dependent on voted 1996. The results show a higher proportion of people voted in 1996 who voted in 1998.
+This tells us that voted1996 is a potential confounding variable. 
+
+```{r echo = FALSE}
+ggplot(turnout_data, aes(x = as.factor(voted1998), fill = as.factor(MAJORPTY))) +
+  geom_bar(position = "fill") +
+  labs(title = "Probability of voted1998 by MAJORPTY",
+       x = "voted1998",
+       y = "Proportion") +
+  scale_fill_discrete(name = "MAJORPTY")
+```
+
+The graph above shows us the proportion of those who did and did not vote in 1998 dependent on MAJORPTY. The results show a higher proportion of people under the 1 category in MAJORPTY who voted in 1998.
+This tells us that MAJORPTY is a potential confounding variable. 
+
+**Part C**
+
+```{r echo = FALSE}
+gotv_matched = matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY,
+                                 data = turnout_data, ratio=5) %>%
+  match.data
+```
+
+```{r echo = FALSE}
+prop_1 = prop(~GOTV_call, data=gotv_matched)
+prop_0 = prop(~GOTV_call == 0, data = gotv_matched)
+diff = prop_0 - prop_1
+prop_1
+prop_0
+```
+The proportion of those receiving a GOTV call who voted in 1998 after matching is **0.166**. The proportion of those not receiving a GOTV call who voted in 1998 after matching is **0.833*. 
+
+```{r echo =  FALSE}
+n_1 <- sum(turnout_data$voted1998 == 1)
+n_0 <- sum(turnout_data$voted1998 == 0)
+se_diff_prop <- sqrt((prop_1 * (1 - prop_1) / n_1) + (prop_0 * (1 - prop_0) / n_0))
+margin_of_error <- 1.96 * se_diff_prop
+conf_interval <- c(diff - margin_of_error, diff + margin_of_error)
+conf_interval
+```
+
+The confidence interval of the difference in proportions after matching is *(0.62525541, 0.6807793)*
+
+# *Problem 2*
+
+```{r echo=FALSE, results='hide'}
+solder_data <- read.csv("/Users/disharaj/Downloads/solder.csv")
+```
+
+```{r echo=FALSE}
+plot_opening <- ggplot(solder_data, aes(x = Opening, y = skips)) +
+                geom_boxplot() +
+                labs(title = "Relationship between Opening Size and Skips",
+                     x = "Opening Size",
+                     y = "Number of Skips")
+plot_solder <- ggplot(solder_data, aes(x = Solder, y = skips)) +
+               geom_boxplot() +
+               labs(title = "Relationship between Solder Thickness and Skips",
+                    x = "Solder Thickness",
+                    y = "Number of Skips")
+plot_opening
+plot_solder
+```
+The first plot shows the relationship between the opening size and skips, and the second plot shows the relationship between solder type and skips. The smaller the opening size, more the number of skips are observed. Thinner the solder, more the number of observed skips. 
+
+```{r echo = FALSE}
+model <- lm(skips ~ Opening + Solder + Opening:Solder, data = solder_data)
+coef(model) %>% round(0)
+```
+
+```{r}
+get_regression_table(model, conf.level = 0.95, digits=2)
+```
+
+- When opening size is medium, the average change of the number of skips is 2. 
+- When opening size is small, the average change of the number of skips is 5. 
+- When the solder size is thin, the avergae change in the number of skips is 2.
+- The interaction effect for Opening and Solder variables is -1 for medium opening size and 10 for the small opeing size, both intercating with SolderThin.This means that the number of skips decreases by 1 for every increase of a medium opening size and thin solder, while it increases by 10 for a small opening size and thin solder. 
+- The intercept represents the baseline number of skips.
+
+An ideal combination of opening and solder thickness, as seen from the results, is a medium opening and size and thin solder, as it reduces the number of skips. 
