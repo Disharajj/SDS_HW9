@@ -1,0 +1,113 @@
+---
+title: "SDS_HW10"
+output: html_document
+date: "2024-04-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = FALSE}
+library(dplyr)
+library(ggplot2)
+library(mosaic)
+library(moderndive) 
+```
+
+```{r echo=FALSE, results='hide'}
+redlining_data <- read.csv("/Users/disharaj/Downloads/redlining.csv")
+```
+
+```{r echo=FALSE}
+model <- lm(policies ~ minority + fire + age + income, data = redlining_data)
+summary(model)
+```
+
+The question we're trying to answer is whether there is any relationship between the number of FAIR policies and the racial/ethnic composition of a ZIP code. We do this by also adjusting for the fire, age and income variables, as they might be potential confounders. The approach we use is multiple linear regression analysis. We treat the number of FAIR policies as the independent varianble and the racial/ethnic composition as the dependent variable, white fire, age and income serve as additional independent variables to adjust for potential confounders.
+Here is a summary of the results - 
+- The baseline number of FAIR policies per 100 houses is given by the intercept, which is -0.1249.
+- The coefficients of fire, age, and income represent offsets to the baseline intercept.
+- The coefficient of fire represents the number of new FAIR policies per 100 houses for every fire, which is 0.0217.
+- The coefficient of age represents the number of new FAIR policies per 100 houses for every one percentage point increase in the proportion of housing units built before WWII, which is 0.00562. 
+- The coefficient of income represents the decrease in the number of new FAIR polcies per 100 houses for every one unit increase in median income, which is 0.01596.
+From the results, we can conclude the following - 
+- Since the p-value of of the coefficient of minority is below the significance level, we can say that the results are statistically significant. This means the relationship between the number of new FAIR polices and the racial/ethnic composition of the ZIP code is of significance, and there is a positive correlation due to a positive coefficient. 
+- Since the p-value of the coefficient of fire is below the significance level, we can say that the results are statistically significant. This means the relationship between the number of new FAIR policies and the number of fires per 100 houses is significant, and there is a positive correlation due to a positive coefficient. 
+- Since the coefficients of age and income are not below the significance level, we can say they are not statistically significant. Thus, we cannot make any conclusions from these coefficients. 
+
+```{r echo=FALSE, results='hide'}
+groceries_data <- read.csv("/Users/disharaj/Downloads/groceries.csv")
+```
+
+```{r echo = FALSE}
+groceries_data1 <- groceries_data %>%
+  group_by(Store) %>%
+  summarize(Average_Price = mean(Price))
+```
+
+```{r echo = FALSE}
+ggplot(groceries_data1, aes(x = Store, y = Average_Price)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Average Price of Products Sold at Different Stores",
+       x = "Store",
+       y = "Average Price") +
+  coord_flip()
+```
+
+
+```{r echo = FALSE}
+groceries_data <- groceries_data %>%
+  mutate(NewStores = ifelse(Neighborhood %in% c('H-E-B', 'heb1', 'heb2'), Stores, NA))
+```
+
+```{r echo = FALSE}
+product_store_counts <-groceries_data %>%
+  group_by(Product) %>%
+  summarise(num_stores = n_distinct(nNeighborhood))
+```
+
+```{r echo = FALSE}
+ggplot(product_store_counts, aes(x = Product, y = num_stores)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Stores Selling Each Product",
+       x = "Product",
+       y = "Number of Stores") +
+  theme_minimal() +
+  coord_flip()
+```
+
+```{r echo = FALSE}
+model1 <- lm(Price ~ Product + Type , data = groceries_data)
+```
+
+```{r echo = FALSE}
+conf_interval <- confint(model1, level = 0.95)["TypeGrocery", ]%>%
+  round(2)
+conf_interval
+```
+
+The above confidence interval tells use that convenience stores, on average charge around 0.41 to 0.92 dollars more than regular grocery stores.
+
+```{r echo = FALSE}
+model2 <- lm(Price ~ Product + Store, data = groceries_data)
+coefficients <- coef(model2)
+store_coefficients <- coefficients[grep("^Store", names(coefficients))]
+lowest_stores <- names(head(sort(store_coefficients), 2))
+highest_stores <- names(tail(sort(store_coefficients), 2))
+lowest_stores
+highest_stores
+```
+The two stores with the lowest prices when comparing the same product are Walmart and Kroger Fresh Fare, while the stores with the highest prices while comparing the same product are Wheatsville Food Co-Op and Whole Foods.
+
+From the coefficients identified in Part D, we can say that the coefficient for Central Market is more than for H-E-B, which means that the possibility that Central Market charges more than H-E-B could be true.
+
+
+
+```{r echo = FALSE}
+groceries_data4 <- groceries_data %>% 
+  mutate(Income10K = Income / 10000)
+model6 <- lm(Price ~ Product + Income10K, data=groceries_data4)
+coef(model6)
+```
+
